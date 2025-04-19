@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mainnet Loading</title>
+  <style>
+    body {
+      margin: 0;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: monospace;
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(120deg, #121212, #0a0a0a);
+    }
+    #particleCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .percentage {
+      font-size: 22px;
+      margin-bottom: 10px;
+      z-index: 1;
+    }
+    .bar-container {
+      width: 80%;
+      height: 30px;
+      background: #222;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 0 10px #00ffcc;
+      position: relative;
+      z-index: 1;
+    }
+    .bar-fill {
+      height: 100%;
+      width: 0;
+      background: #91FaE8;
+      border-radius: 20px 0 0 20px;
+      box-shadow: 0 0 20px #00ffcc;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      transition: width 0.5s ease;
+    }
+    .bar-logo {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%) rotate(0deg);
+      height: 24px;
+      width: 24px;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .progress-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 25px;
+      font-size: 22px;
+      text-transform: uppercase;
+      color: #00ffcc;
+      z-index: 1;
+    }
+    .progress-info::after {
+      content: "|";
+      animation: blink 1s infinite step-start;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+    .progress-info img {
+      height: 30px;
+    }
+    .timer {
+      position: absolute;
+      bottom: 50px;  /* опустили чуть выше для твиттера */
+      font-size: 18px;
+      color: #aaa;
+      z-index: 1;
+    }
+    .twitter-link {
+      position: absolute;
+      bottom: 20px;
+      font-size: 14px;
+      color: #00ffcc;
+      z-index: 1;
+    }
+    .twitter-link a {
+      color: #00ffcc;
+      text-decoration: none;
+    }
+    /* Toggle icon */
+    #toggleParticles {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      z-index: 2;
+      width: 40px;
+      height: 40px;
+      cursor: pointer;
+      filter: grayscale(100%);
+      transition: filter 0.3s ease;
+    }
+    #toggleParticles.enabled {
+      filter: drop-shadow(0 0 8px #00ffcc) saturate(2);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="particleCanvas"></canvas>
+  <!-- Head icon as toggle -->
+  <img id="toggleParticles" src="Morse-Basic.png" alt="Toggle Heads">
+
+  <div class="percentage" id="percentage"></div>
+  <div class="bar-container" id="barContainer">
+    <div class="bar-fill" id="bar"></div>
+    <img src="mitosis_logo_symbol_basic.webp" class="bar-logo" id="barLogo" alt="Logo">
+  </div>
+  <div class="progress-info">
+    <img src="Morse-Basic.png" alt="Morse">
+    <span id="footerText"></span>
+  </div>
+  <div class="timer" id="timer">Time left: ...</div>
+  <div class="twitter-link">
+    dev: <a href="https://x.com/beszedin" target="_blank">@beszedin</a>
+  </div>
+
+  <script>
+    // Progress bar logic
+    const startDate = Date.UTC(2025,2,31),
+          endDate   = Date.UTC(2025,4,27),
+          totalDuration = endDate - startDate;
+
+    const bar       = document.getElementById('bar'),
+          percentText = document.getElementById('percentage'),
+          timerEl    = document.getElementById('timer'),
+          footerEl   = document.getElementById('footerText'),
+          barLogo    = document.getElementById('barLogo'),
+          barContainer = document.getElementById('barContainer');
+
+    let rotationAngle = 0;
+
+    function getProgress() {
+      const now = Date.now(),
+            passed = now - startDate;
+      return Math.min(100, Math.max(0, (passed / totalDuration) * 100));
+    }
+
+    function getTimeLeft() {
+      const now = Date.now(),
+            diff = endDate - now;
+      if (diff <= 0) return 'Live!';
+      const days    = Math.floor(diff / (1000 * 60 * 60 * 24)),
+            hours   = Math.floor((diff / (1000 * 60 * 60)) % 24),
+            minutes = Math.floor((diff / (1000 * 60)) % 60),
+            seconds = Math.floor((diff / 1000) % 60);
+      return `Time left: ${days}d ${hours}h ${minutes}m ${seconds}s`;
+    }
+
+    function animateBar() {
+      const p = getProgress();
+      bar.style.width = `${p}%`;
+      percentText.textContent = `${p.toFixed(2)}%`;
+      timerEl.textContent = getTimeLeft();
+
+      const cw = barContainer.offsetWidth,
+            lw = barLogo.offsetWidth,
+            t  = (Date.now() % 4000) / 4000,
+            x  = (cw - lw) * t;
+
+      rotationAngle = (rotationAngle + 3) % 360;
+      barLogo.style.left = `${x}px`;
+      barLogo.style.transform = `translateY(-50%) rotate(${rotationAngle}deg)`;
+
+      requestAnimationFrame(animateBar);
+    }
+    animateBar();
+
+    // Typewriter
+    const loadingText = 'Mainnet loading...',
+          delay       = 200;
+    let index = 0, direction = 1;
+    function typeWriter() {
+      index += direction;
+      if (index > loadingText.length) {
+        direction = -1;
+        setTimeout(typeWriter, 800);
+        return;
+      }
+      if (index < 0) direction = 1;
+      footerEl.textContent = loadingText.slice(0, index);
+      setTimeout(typeWriter, delay);
+    }
+    typeWriter();
+
+    // Particles setup (не меняли)
+    const canvas = document.getElementById('particleCanvas'),
+          ctx    = canvas.getContext('2d'),
+          imgHead = new Image();
+    imgHead.src = 'Morse-Basic.png';
+
+    let heads = [], count = 320, enabled = false;
+    function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
+    window.addEventListener('resize', resize);
+    resize();
+
+    document.getElementById('toggleParticles').onclick = () => {
+      enabled = !enabled;
+      document.getElementById('toggleParticles').classList.toggle('enabled', enabled);
+      heads = [];
+      if (enabled) {
+        for (let j = 0; j < count; j++) {
+          const speed = Math.random() * 2 + 1;
+          heads.push({ x: Math.random() * canvas.width, y: -Math.random() * 100, vx: 0, vy: 0, baseSpeed: speed, size: 30 + Math.random() * 10 });
+        }
+      }
+    };
+
+    window.addEventListener('mousemove', e => {
+      if (!enabled) return;
+      heads.forEach(h => {
+        const dx = h.x - e.clientX,
+              dy = h.y - e.clientY,
+              dist = Math.hypot(dx, dy);
+        if (dist < 80) {
+          const angle = Math.atan2(dy, dx),
+                force = (80 - dist) / 80 * 20;
+          h.vx += Math.cos(angle) * force;
+          h.vy += Math.sin(angle) * force;
+        }
+      });
+    });
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (enabled) {
+        heads.forEach(h => {
+          h.vx *= 0.9;
+          h.vy *= 0.9;
+          h.x += h.vx;
+          h.y += h.baseSpeed + h.vy;
+          if (h.y > canvas.height + h.size) {
+            h.y = -Math.random() * 100;
+            h.x = Math.random() * canvas.width;
+            h.vx = 0; h.vy = 0;
+          }
+          if (h.x < -h.size) h.x = canvas.width + h.size;
+          if (h.x > canvas.width + h.size) h.x = -h.size;
+          ctx.drawImage(imgHead, h.x - h.size/2, h.y - h.size/2, h.size, h.size);
+        });
+      }
+      requestAnimationFrame(draw);
+    }
+    imgHead.onload = draw;
+  </script>
+</body>
+</html>
